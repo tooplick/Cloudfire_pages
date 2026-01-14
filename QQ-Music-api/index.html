@@ -1,0 +1,379 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>QQ-Music-api | YGKing</title><meta name="author" content="搁浅,id6543156918@gmail.com"><meta name="copyright" content="搁浅"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="前言这是一个基于 Cloudflare Workers + D1 数据库的 QQ 音乐 API 服务，无需服务器，自动刷新凭证，部署只需几分钟。   示例api网址：api.ygking.top   文档站：doc.ygking.top 为什么选择 Cloudflare Workers？   特性 说明    💰 完全免费 每天 10 万次免费请求，个人使用绑绑有余   🚀 全球 CDN 部署">
+<meta property="og:type" content="article">
+<meta property="og:title" content="QQ-Music-api">
+<meta property="og:url" content="https://ygking.top/QQ-Music-api/index.html">
+<meta property="og:site_name" content="YGKing">
+<meta property="og:description" content="前言这是一个基于 Cloudflare Workers + D1 数据库的 QQ 音乐 API 服务，无需服务器，自动刷新凭证，部署只需几分钟。   示例api网址：api.ygking.top   文档站：doc.ygking.top 为什么选择 Cloudflare Workers？   特性 说明    💰 完全免费 每天 10 万次免费请求，个人使用绑绑有余   🚀 全球 CDN 部署">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://ygking.top/img/Article%20cover/2.webp">
+<meta property="article:published_time" content="2026-01-14T12:00:39.000Z">
+<meta property="article:modified_time" content="2026-01-14T12:11:12.384Z">
+<meta property="article:author" content="搁浅">
+<meta property="article:tag" content="Api">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://ygking.top/img/Article%20cover/2.webp"><script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "QQ-Music-api",
+  "url": "https://ygking.top/QQ-Music-api/",
+  "image": "https://ygking.top/img/Article%20cover/2.webp",
+  "datePublished": "2026-01-14T12:00:39.000Z",
+  "dateModified": "2026-01-14T12:11:12.384Z",
+  "author": [
+    {
+      "@type": "Person",
+      "name": "https://github.com/tooplick",
+      "url": "https://github.com/tooplick"
+    }
+  ]
+}</script><link rel="shortcut icon" href="/img/favicon.ico"><link rel="canonical" href="https://ygking.top/QQ-Music-api/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><meta/><meta/><meta/><meta/><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/node-snackbar/dist/snackbar.min.css" media="print" onload="this.media='all'"><script>
+    (() => {
+      
+    const saveToLocal = {
+      set: (key, value, ttl) => {
+        if (!ttl) return
+        const expiry = Date.now() + ttl * 86400000
+        localStorage.setItem(key, JSON.stringify({ value, expiry }))
+      },
+      get: key => {
+        const itemStr = localStorage.getItem(key)
+        if (!itemStr) return undefined
+        const { value, expiry } = JSON.parse(itemStr)
+        if (Date.now() > expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return value
+      }
+    }
+
+    window.btf = {
+      saveToLocal,
+      getScript: (url, attr = {}) => new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = url
+        script.async = true
+        Object.entries(attr).forEach(([key, val]) => script.setAttribute(key, val))
+        script.onload = script.onreadystatechange = () => {
+          if (!script.readyState || /loaded|complete/.test(script.readyState)) resolve()
+        }
+        script.onerror = reject
+        document.head.appendChild(script)
+      }),
+      getCSS: (url, id) => new Promise((resolve, reject) => {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = url
+        if (id) link.id = id
+        link.onload = link.onreadystatechange = () => {
+          if (!link.readyState || /loaded|complete/.test(link.readyState)) resolve()
+        }
+        link.onerror = reject
+        document.head.appendChild(link)
+      }),
+      addGlobalFn: (key, fn, name = false, parent = window) => {
+        if (!false && key.startsWith('pjax')) return
+        const globalFn = parent.globalFn || {}
+        globalFn[key] = globalFn[key] || {}
+        globalFn[key][name || Object.keys(globalFn[key]).length] = fn
+        parent.globalFn = globalFn
+      }
+    }
+  
+      
+      const activateDarkMode = () => {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      const activateLightMode = () => {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+
+      btf.activateDarkMode = activateDarkMode
+      btf.activateLightMode = activateLightMode
+
+      const theme = saveToLocal.get('theme')
+    
+          theme === 'dark' ? activateDarkMode() : theme === 'light' ? activateLightMode() : null
+        
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        document.documentElement.classList.toggle('hide-aside', asideStatus === 'hide')
+      }
+    
+      
+    const detectApple = () => {
+      if (/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+  
+    })()
+  </script><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: undefined,
+  translate: {"defaultEncoding":2,"translateDelay":0,"msgToTraditionalChinese":"繁","msgToSimplifiedChinese":"简"},
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false,"highlightFullpage":false,"highlightMacStyle":true},
+  copy: {
+    success: '复制成功',
+    error: '复制失败',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  dateSuffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  lightbox: 'null',
+  Snackbar: {"chs_to_cht":"已切换为繁体中文","cht_to_chs":"已切换为简体中文","day_to_night":"已切换为深色模式","night_to_day":"已切换为浅色模式","bgLight":"#87D4FA","bgDark":"#1f1f1f","position":"top-center"},
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid/dist/infinitegrid.min.js',
+    buttonText: '加载更多'
+  },
+  isPhotoFigcaption: false,
+  islazyloadPlugin: false,
+  isAnchor: true,
+  percent: {
+    toc: false,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: 'QQ-Music-api',
+  isHighlightShrink: false,
+  isToc: true,
+  pageType: 'post'
+}</script><meta name="generator" content="Hexo 8.1.1"></head><body><script>window.paceOptions = {
+  restartOnPushState: false
+}
+
+btf.addGlobalFn('pjaxSend', () => {
+  Pace.restart()
+}, 'pace_restart')
+
+</script><link rel="stylesheet" href="/css/flash.css"/><script src="https://cdn.jsdelivr.net/npm/pace-js/pace.min.js"></script><div id="web_bg" style="background-image: url(/img/background.jpg);"></div><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img text-center"><img src="/img/cover.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="site-data text-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">6</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">3</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">1</div></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/Nekro-Endpoint/#My-Endpoint"><i class="fa-fw fas fa-wrench"></i><span> 工具栏</span></a></div><div class="menus_item"><a class="site-page" href="/Portal/"><i class="fa-fw fas fa-paper-plane"></i><span> 传送门</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fa-solid fa-link"></i><span> 友情链接</span></a></div><div class="menus_item"><a class="site-page" target="_blank" rel="noopener" href="https://github.com/tooplick"><i class="fa-fw fa-brands fa-github"></i><span> GitHub</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url(/img/Article%20cover/2.webp);"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/"><span class="site-name">YGKing</span></a><a class="nav-page-title" href="/"><span class="site-name">QQ-Music-api</span><span class="site-name"><i class="fa-solid fa-circle-arrow-left"></i><span>  返回首页</span></span></a></span><div id="menus"><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/Nekro-Endpoint/#My-Endpoint"><i class="fa-fw fas fa-wrench"></i><span> 工具栏</span></a></div><div class="menus_item"><a class="site-page" href="/Portal/"><i class="fa-fw fas fa-paper-plane"></i><span> 传送门</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fa-solid fa-link"></i><span> 友情链接</span></a></div><div class="menus_item"><a class="site-page" target="_blank" rel="noopener" href="https://github.com/tooplick"><i class="fa-fw fa-brands fa-github"></i><span> GitHub</span></a></div></div><div id="toggle-menu"><span class="site-page"><i class="fas fa-bars fa-fw"></i></span></div></div></nav><div id="post-info"><h1 class="post-title">QQ-Music-api</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2026-01-14T12:00:39.000Z" title="发表于 2026-01-14 20:00:39">2026-01-14</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2026-01-14T12:11:12.384Z" title="更新于 2026-01-14 20:11:12">2026-01-14</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/Technology/">Technology</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-wordcount"><i class="far fa-file-word fa-fw post-meta-icon"></i><span class="post-meta-label">总字数:</span><span class="word-count">1.2k</span><span class="post-meta-separator">|</span><i class="far fa-clock fa-fw post-meta-icon"></i><span class="post-meta-label">阅读时长:</span><span>4分钟</span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="container post-content" id="article-container"><h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>这是一个基于 <strong>Cloudflare Workers + D1 数据库</strong>的 QQ 音乐 API 服务，无需服务器，自动刷新凭证，部署只需几分钟。  </p>
+<p><strong>示例api网址</strong>：<a target="_blank" rel="noopener" href="https://api.ygking.top/">api.ygking.top</a>  </p>
+<p><strong>文档站</strong>：<a target="_blank" rel="noopener" href="https://doc.ygking.top/">doc.ygking.top</a></p>
+<h2 id="为什么选择-Cloudflare-Workers？"><a href="#为什么选择-Cloudflare-Workers？" class="headerlink" title="为什么选择 Cloudflare Workers？"></a>为什么选择 Cloudflare Workers？</h2><table>
+<thead>
+<tr>
+<th>特性</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>💰 <strong>完全免费</strong></td>
+<td>每天 10 万次免费请求，个人使用绑绑有余</td>
+</tr>
+<tr>
+<td>🚀 <strong>全球 CDN</strong></td>
+<td>部署在 Cloudflare 全球边缘节点，延迟极低</td>
+</tr>
+<tr>
+<td>🔄 <strong>自动刷新</strong></td>
+<td>Cron 定时任务自动刷新凭证，无需人工干预</td>
+</tr>
+<tr>
+<td>📦 <strong>D1 数据库</strong></td>
+<td>SQLite 边缘数据库，凭证持久化存储</td>
+</tr>
+<tr>
+<td>🔧 <strong>零运维</strong></td>
+<td>无服务器架构，不用担心宕机、升级等问题</td>
+</tr>
+</tbody></table>
+<h2 id="功能一览"><a href="#功能一览" class="headerlink" title="功能一览"></a>功能一览</h2><p>本项目提供以下 API 端点：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">GET /api/search?keyword=周杰伦    # 搜索歌曲/歌手/专辑/歌单</span><br><span class="line">GET /api/song/url?mid=xxx        # 获取歌曲播放链接</span><br><span class="line">GET /api/song/detail?mid=xxx     # 获取歌曲详情</span><br><span class="line">GET /api/lyric?mid=xxx           # 获取歌词</span><br><span class="line">GET /api/album?mid=xxx           # 获取专辑详情</span><br><span class="line">GET /api/playlist?id=xxx         # 获取歌单详情</span><br><span class="line">GET /api/singer?mid=xxx          # 获取歌手信息</span><br><span class="line">GET /api/top                     # 获取排行榜</span><br></pre></td></tr></table></figure>
+
+<h2 id="技术架构"><a href="#技术架构" class="headerlink" title="技术架构"></a>技术架构</h2><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line">┌─────────────────────────────────────────────────────────────┐</span><br><span class="line">│                    Cloudflare Workers                       │</span><br><span class="line">├─────────────────────────────────────────────────────────────┤</span><br><span class="line">│                                                             │</span><br><span class="line">│  ┌─────────┐    ┌─────────────┐    ┌──────────────────────┐ │</span><br><span class="line">│  │  路由   │───▶│  API 模块   │───▶│   QQ Music API       │ │</span><br><span class="line">│  │ Router  │    │  Handlers   │    │   (y.qq.com)         │ │</span><br><span class="line">│  └─────────┘    └─────────────┘    └──────────────────────┘ │</span><br><span class="line">│       │               │                                     │</span><br><span class="line">│       ▼               ▼                                     │</span><br><span class="line">│  ┌─────────┐    ┌─────────────┐                             │</span><br><span class="line">│  │  签名   │    │ D1 Database │                             │</span><br><span class="line">│  │  sign   │    │ (凭证存储)   │                             │</span><br><span class="line">│  └─────────┘    └─────────────┘                             │</span><br><span class="line">│                       ▲                                     │</span><br><span class="line">│                       │                                     │</span><br><span class="line">│  ┌─────────────────────────────────────────────────────┐    │</span><br><span class="line">│  │              Cron Trigger (每小时)                   │    │</span><br><span class="line">│  │              自动检查并刷新凭证                       │    │</span><br><span class="line">│  └─────────────────────────────────────────────────────┘    │</span><br><span class="line">│                                                             │</span><br><span class="line">└─────────────────────────────────────────────────────────────┘</span><br></pre></td></tr></table></figure>
+
+<h2 id="核心实现解析"><a href="#核心实现解析" class="headerlink" title="核心实现解析"></a>核心实现解析</h2><h3 id="1-请求签名"><a href="#1-请求签名" class="headerlink" title="1. 请求签名"></a>1. 请求签名</h3><p>QQ 音乐 API 需要对每个请求进行签名验证。签名算法基于 SHA1 哈希：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">async</span> <span class="keyword">function</span> <span class="title function_">generateSign</span>(<span class="params">requestData</span>) &#123;</span><br><span class="line">    <span class="keyword">const</span> jsonStr = <span class="title class_">JSON</span>.<span class="title function_">stringify</span>(requestData);</span><br><span class="line">    <span class="keyword">const</span> hash = <span class="keyword">await</span> <span class="title function_">sha1</span>(jsonStr);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 从哈希中提取特定位置的字符组合</span></span><br><span class="line">    <span class="keyword">const</span> part1 = [<span class="number">23</span>, <span class="number">14</span>, <span class="number">6</span>, <span class="number">36</span>, <span class="number">16</span>, <span class="number">40</span>, <span class="number">7</span>, <span class="number">19</span>]</span><br><span class="line">        .<span class="title function_">filter</span>(<span class="function"><span class="params">x</span> =&gt;</span> x &lt; <span class="number">40</span>)</span><br><span class="line">        .<span class="title function_">map</span>(<span class="function"><span class="params">i</span> =&gt;</span> hash[i])</span><br><span class="line">        .<span class="title function_">join</span>(<span class="string">&quot;&quot;</span>);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">const</span> part2 = [<span class="number">16</span>, <span class="number">1</span>, <span class="number">32</span>, <span class="number">12</span>, <span class="number">19</span>, <span class="number">27</span>, <span class="number">8</span>, <span class="number">5</span>]</span><br><span class="line">        .<span class="title function_">map</span>(<span class="function"><span class="params">i</span> =&gt;</span> hash[i])</span><br><span class="line">        .<span class="title function_">join</span>(<span class="string">&quot;&quot;</span>);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// XOR 混淆 + Base64 编码</span></span><br><span class="line">    <span class="keyword">const</span> scrambleValues = [<span class="number">89</span>, <span class="number">39</span>, <span class="number">179</span>, ...];</span><br><span class="line">    <span class="comment">// ... 处理逻辑</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="string">`zzc<span class="subst">$&#123;part1&#125;</span><span class="subst">$&#123;b64Part&#125;</span><span class="subst">$&#123;part2&#125;</span>`</span>.<span class="title function_">toLowerCase</span>();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="2-凭证管理"><a href="#2-凭证管理" class="headerlink" title="2. 凭证管理"></a>2. 凭证管理</h3><p>凭证存储在 D1 数据库中，包含以下关键字段：</p>
+<ul>
+<li><code>musickey</code> - 音乐密钥，核心认证凭证</li>
+<li><code>musicid</code> - 用户音乐 ID</li>
+<li><code>refresh_key</code> - 刷新密钥</li>
+<li><code>refresh_token</code> - 刷新令牌</li>
+<li><code>musickey_createtime</code> - 密钥创建时间</li>
+<li><code>key_expires_in</code> - 过期时间（默认 72 小时）</li>
+</ul>
+<h3 id="3-自动刷新机制"><a href="#3-自动刷新机制" class="headerlink" title="3. 自动刷新机制"></a>3. 自动刷新机制</h3><p>通过 Cloudflare Workers 的 Cron Trigger 实现自动刷新：</p>
+<figure class="highlight toml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># wrangler.toml</span></span><br><span class="line"><span class="section">[triggers]</span></span><br><span class="line"><span class="attr">crons</span> = [<span class="string">&quot;0 * * * *&quot;</span>]  <span class="comment"># 每小时检查一次</span></span><br></pre></td></tr></table></figure>
+
+<p>刷新逻辑：</p>
+<ul>
+<li>计算凭证剩余有效期</li>
+<li>如果剩余时间少于 24 小时，自动触发刷新</li>
+<li>调用 QQ 音乐的 <code>LoginServer.Login</code> 接口更新凭证</li>
+</ul>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 如果剩余时间少于 24 小时，自动刷新</span></span><br><span class="line"><span class="keyword">if</span> (remainingTime &lt; <span class="number">24</span> * <span class="number">3600</span>) &#123;</span><br><span class="line">    <span class="keyword">const</span> newData = <span class="keyword">await</span> <span class="title function_">refreshCredential</span>(credential);</span><br><span class="line">    <span class="keyword">await</span> <span class="title function_">saveCredentialToDB</span>(db, updatedCredential);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="快速部署"><a href="#快速部署" class="headerlink" title="快速部署"></a>快速部署</h2><h3 id="步骤-1-Fork-仓库"><a href="#步骤-1-Fork-仓库" class="headerlink" title="步骤 1: Fork 仓库"></a>步骤 1: Fork 仓库</h3><p>Fork <a target="_blank" rel="noopener" href="https://github.com/tooplick/qq-music-api">qq-music-api</a> 到你的 GitHub。</p>
+<h3 id="步骤-2-创建-D1-数据库"><a href="#步骤-2-创建-D1-数据库" class="headerlink" title="步骤 2: 创建 D1 数据库"></a>步骤 2: 创建 D1 数据库</h3><ol>
+<li>登录 <a target="_blank" rel="noopener" href="https://dash.cloudflare.com/">Cloudflare Dashboard</a></li>
+<li>进入 <strong>D1 SQL Database</strong> &gt; <strong>Create database</strong></li>
+<li>名称填写: <code>qq-music-api</code></li>
+<li>复制 <strong>Database ID</strong></li>
+</ol>
+<h3 id="步骤-3-创建-Worker-并连接-Git"><a href="#步骤-3-创建-Worker-并连接-Git" class="headerlink" title="步骤 3: 创建 Worker 并连接 Git"></a>步骤 3: 创建 Worker 并连接 Git</h3><ol>
+<li><strong>Workers &amp; Pages</strong> &gt; <strong>Create</strong> &gt; <strong>Create Worker</strong></li>
+<li>名称: <code>qq-music-api</code>，点击 <strong>Deploy</strong></li>
+<li><strong>Settings</strong> &gt; <strong>Build</strong> &gt; <strong>Connect Git repository</strong></li>
+<li>选择你 Fork 的仓库</li>
+</ol>
+<h3 id="步骤-4-设置凭证"><a href="#步骤-4-设置凭证" class="headerlink" title="步骤 4: 设置凭证"></a>步骤 4: 设置凭证</h3><ol>
+<li><strong>Settings</strong> &gt; <strong>Variables and Secrets</strong> &gt; <strong>Add</strong></li>
+<li>Type: <strong>Secret</strong></li>
+<li>Name: <code>INITIAL_CREDENTIAL</code></li>
+<li>Value: 粘贴你的 QQ 音乐凭证 JSON</li>
+</ol>
+<h3 id="步骤-5-初始化"><a href="#步骤-5-初始化" class="headerlink" title="步骤 5: 初始化"></a>步骤 5: 初始化</h3><p>访问 <code>https://你的域名/admin</code> 完成数据库初始化。</p>
+<h2 id="如何获取凭证？"><a href="#如何获取凭证？" class="headerlink" title="如何获取凭证？"></a>如何获取凭证？</h2><p>可以使用 <a target="_blank" rel="noopener" href="https://github.com/tooplick/QQ-Music-Player">QQ-Music-Player</a> 或 <a target="_blank" rel="noopener" href="https://github.com/tooplick/qq-music-download">qq-music-download</a> 等工具进行 QQ 登录获取凭证。</p>
+<h2 id="使用示例"><a href="#使用示例" class="headerlink" title="使用示例"></a>使用示例</h2><h3 id="搜索歌曲"><a href="#搜索歌曲" class="headerlink" title="搜索歌曲"></a>搜索歌曲</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">curl <span class="string">&quot;https://your-api.workers.dev/api/search?keyword=晴天&quot;</span></span><br></pre></td></tr></table></figure>
+
+<p>响应：</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="punctuation">&#123;</span></span><br><span class="line">    <span class="attr">&quot;code&quot;</span><span class="punctuation">:</span> <span class="number">0</span><span class="punctuation">,</span></span><br><span class="line">    <span class="attr">&quot;data&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">        <span class="attr">&quot;keyword&quot;</span><span class="punctuation">:</span> <span class="string">&quot;晴天&quot;</span><span class="punctuation">,</span></span><br><span class="line">        <span class="attr">&quot;type&quot;</span><span class="punctuation">:</span> <span class="string">&quot;song&quot;</span><span class="punctuation">,</span></span><br><span class="line">        <span class="attr">&quot;total&quot;</span><span class="punctuation">:</span> <span class="number">100</span><span class="punctuation">,</span></span><br><span class="line">        <span class="attr">&quot;list&quot;</span><span class="punctuation">:</span> <span class="punctuation">[</span></span><br><span class="line">            <span class="punctuation">&#123;</span></span><br><span class="line">                <span class="attr">&quot;songmid&quot;</span><span class="punctuation">:</span> <span class="string">&quot;0039MnYb0qxYhV&quot;</span><span class="punctuation">,</span></span><br><span class="line">                <span class="attr">&quot;songname&quot;</span><span class="punctuation">:</span> <span class="string">&quot;晴天&quot;</span><span class="punctuation">,</span></span><br><span class="line">                <span class="attr">&quot;singer&quot;</span><span class="punctuation">:</span> <span class="punctuation">[</span><span class="punctuation">&#123;</span><span class="attr">&quot;name&quot;</span><span class="punctuation">:</span> <span class="string">&quot;周杰伦&quot;</span><span class="punctuation">&#125;</span><span class="punctuation">]</span><span class="punctuation">,</span></span><br><span class="line">                ...</span><br><span class="line">            <span class="punctuation">&#125;</span></span><br><span class="line">        <span class="punctuation">]</span></span><br><span class="line">    <span class="punctuation">&#125;</span></span><br><span class="line"><span class="punctuation">&#125;</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="获取播放链接"><a href="#获取播放链接" class="headerlink" title="获取播放链接"></a>获取播放链接</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">curl <span class="string">&quot;https://your-api.workers.dev/api/song/url?mid=0039MnYb0qxYhV&amp;quality=320&quot;</span></span><br></pre></td></tr></table></figure>
+
+<p>响应：</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="punctuation">&#123;</span></span><br><span class="line">    <span class="attr">&quot;code&quot;</span><span class="punctuation">:</span> <span class="number">0</span><span class="punctuation">,</span></span><br><span class="line">    <span class="attr">&quot;data&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">        <span class="attr">&quot;0039MnYb0qxYhV&quot;</span><span class="punctuation">:</span> <span class="string">&quot;https://isure.stream.qqmusic.qq.com/xxx&quot;</span></span><br><span class="line">    <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">    <span class="attr">&quot;quality&quot;</span><span class="punctuation">:</span> <span class="string">&quot;320&quot;</span></span><br><span class="line"><span class="punctuation">&#125;</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="常见问题"><a href="#常见问题" class="headerlink" title="常见问题"></a>常见问题</h2><h3 id="Q-凭证多久需要手动更新？"><a href="#Q-凭证多久需要手动更新？" class="headerlink" title="Q: 凭证多久需要手动更新？"></a>Q: 凭证多久需要手动更新？</h3><p>理论上永远不需要。只要 <code>refresh_key</code> 有效，系统会自动刷新 <code>musickey</code>。但如果长时间未使用（超过 90 天），可能需要重新登录获取新凭证。</p>
+<h3 id="Q-免费额度够用吗？"><a href="#Q-免费额度够用吗？" class="headerlink" title="Q: 免费额度够用吗？"></a>Q: 免费额度够用吗？</h3><p>Cloudflare Workers 免费套餐提供：</p>
+<ul>
+<li>每天 10 万次请求</li>
+<li>D1 每天 500 万次读取、10 万次写入</li>
+</ul>
+<p>对于个人使用完全足够。</p>
+<h3 id="Q-支持哪些音质？"><a href="#Q-支持哪些音质？" class="headerlink" title="Q: 支持哪些音质？"></a>Q: 支持哪些音质？</h3><table>
+<thead>
+<tr>
+<th>参数</th>
+<th>音质</th>
+<th>码率</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>128</td>
+<td>MP3</td>
+<td>128kbps</td>
+</tr>
+<tr>
+<td>320</td>
+<td>MP3</td>
+<td>320kbps</td>
+</tr>
+<tr>
+<td>flac</td>
+<td>FLAC</td>
+<td>无损</td>
+</tr>
+</tbody></table>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>通过 Cloudflare Workers + D1 的组合，我们实现了：</p>
+<ul>
+<li>✅ <strong>零成本部署</strong> - 完全免费</li>
+<li>✅ <strong>自动化运维</strong> - 凭证自动刷新</li>
+<li>✅ <strong>高可用</strong> - 全球 CDN，99.9% 可用性</li>
+<li>✅ <strong>易于使用</strong> - RESTful API，开箱即用</li>
+</ul>
+<p>项目地址：<a target="_blank" rel="noopener" href="https://github.com/tooplick/qq-music-api">https://github.com/tooplick/qq-music-api</a></p>
+<hr>
+<h2 id="⚠️-免责声明"><a href="#⚠️-免责声明" class="headerlink" title="⚠️ 免责声明"></a>⚠️ 免责声明</h2><p>本项目仅供学习和个人使用，请勿用于商业用途。使用本项目产生的任何问题由使用者自行承担。</p>
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>文章作者: </span><span class="post-copyright-info"><a target="_blank" rel="noopener" href="https://github.com/tooplick">https://github.com/tooplick</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>文章链接: </span><span class="post-copyright-info"><a href="https://ygking.top/QQ-Music-api/">https://ygking.top/QQ-Music-api/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来源 <a href="https://ygking.top" target="_blank">YGKing</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/Api/">Api</a></div></div><nav class="pagination-post" id="pagination"><a class="pagination-related full-width" href="/WiFi-hacking/" title="WiFi 密码破解"><img class="cover" src="/img/Article%20cover/8.webp" onerror="onerror=null;src='/img/404.jpg'" alt="cover of next post"><div class="info text-right"><div class="info-1"><div class="info-item-1">下一篇</div><div class="info-item-2">WiFi 密码破解</div></div><div class="info-2"><div class="info-item-1">介绍本篇将介绍如何使用  Aircrack-ng 对 WPA&#x2F;WPA2 协议进行握手攻击，获取握手包以供离线暴力破解WiFi密码 前提条件 无线网卡 Linux系统，如 Kali aircrack-ng 软件包  准备 Kali Linux 系统自带 aircrack-ng   如果使用其他Linux发行版需要额外安装 aircrack-ng 软件包  Ubuntu1sudo apt install aircrack-ng    Arch Linux1sudo pacman -S aircrack-ng    其他Linux发行版请自行安装开始扫描启用root账号1sudo su  查看网络设备1iwconfig  网卡开启监听模式1airmon-ng start wlan0  嗅探WiFi1airodump-ng wlan0mon 抓包启动抓包1airodump-ng -w capture -c 信道 --bssid 路由器MAC wlan0mon   Tips:   capture 为保存的握手包名称该命令用于抓取 WPA&#x2F;WPA2 四次握手包，用于离线密...</div></div></div></a></nav></div><div class="aside-content" id="aside-content"><div class="card-widget card-info text-center"><div class="avatar-img"><img src="/img/cover.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info-name">搁浅</div><div class="author-info-description"></div><div class="site-data"><a href="/archives/"><div class="headline">文章</div><div class="length-num">6</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">3</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">1</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/tooplick"><i class="fab fa-github"></i><span>Follow Me</span></a></div><div class="card-widget card-announcement"><div class="item-headline"><i class="fas fa-bullhorn fa-shake"></i><span>公告</span></div><div class="announcement_content">This is my Web Page.</div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span><span class="toc-percentage"></span></div><div class="toc-content is-expand"><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%89%8D%E8%A8%80"><span class="toc-number">1.</span> <span class="toc-text">前言</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B8%BA%E4%BB%80%E4%B9%88%E9%80%89%E6%8B%A9-Cloudflare-Workers%EF%BC%9F"><span class="toc-number">2.</span> <span class="toc-text">为什么选择 Cloudflare Workers？</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%8A%9F%E8%83%BD%E4%B8%80%E8%A7%88"><span class="toc-number">3.</span> <span class="toc-text">功能一览</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%8A%80%E6%9C%AF%E6%9E%B6%E6%9E%84"><span class="toc-number">4.</span> <span class="toc-text">技术架构</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%A0%B8%E5%BF%83%E5%AE%9E%E7%8E%B0%E8%A7%A3%E6%9E%90"><span class="toc-number">5.</span> <span class="toc-text">核心实现解析</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-%E8%AF%B7%E6%B1%82%E7%AD%BE%E5%90%8D"><span class="toc-number">5.1.</span> <span class="toc-text">1. 请求签名</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-%E5%87%AD%E8%AF%81%E7%AE%A1%E7%90%86"><span class="toc-number">5.2.</span> <span class="toc-text">2. 凭证管理</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-%E8%87%AA%E5%8A%A8%E5%88%B7%E6%96%B0%E6%9C%BA%E5%88%B6"><span class="toc-number">5.3.</span> <span class="toc-text">3. 自动刷新机制</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%BF%AB%E9%80%9F%E9%83%A8%E7%BD%B2"><span class="toc-number">6.</span> <span class="toc-text">快速部署</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%AD%A5%E9%AA%A4-1-Fork-%E4%BB%93%E5%BA%93"><span class="toc-number">6.1.</span> <span class="toc-text">步骤 1: Fork 仓库</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%AD%A5%E9%AA%A4-2-%E5%88%9B%E5%BB%BA-D1-%E6%95%B0%E6%8D%AE%E5%BA%93"><span class="toc-number">6.2.</span> <span class="toc-text">步骤 2: 创建 D1 数据库</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%AD%A5%E9%AA%A4-3-%E5%88%9B%E5%BB%BA-Worker-%E5%B9%B6%E8%BF%9E%E6%8E%A5-Git"><span class="toc-number">6.3.</span> <span class="toc-text">步骤 3: 创建 Worker 并连接 Git</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%AD%A5%E9%AA%A4-4-%E8%AE%BE%E7%BD%AE%E5%87%AD%E8%AF%81"><span class="toc-number">6.4.</span> <span class="toc-text">步骤 4: 设置凭证</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%AD%A5%E9%AA%A4-5-%E5%88%9D%E5%A7%8B%E5%8C%96"><span class="toc-number">6.5.</span> <span class="toc-text">步骤 5: 初始化</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%A6%82%E4%BD%95%E8%8E%B7%E5%8F%96%E5%87%AD%E8%AF%81%EF%BC%9F"><span class="toc-number">7.</span> <span class="toc-text">如何获取凭证？</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BD%BF%E7%94%A8%E7%A4%BA%E4%BE%8B"><span class="toc-number">8.</span> <span class="toc-text">使用示例</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%90%9C%E7%B4%A2%E6%AD%8C%E6%9B%B2"><span class="toc-number">8.1.</span> <span class="toc-text">搜索歌曲</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E8%8E%B7%E5%8F%96%E6%92%AD%E6%94%BE%E9%93%BE%E6%8E%A5"><span class="toc-number">8.2.</span> <span class="toc-text">获取播放链接</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%B8%B8%E8%A7%81%E9%97%AE%E9%A2%98"><span class="toc-number">9.</span> <span class="toc-text">常见问题</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#Q-%E5%87%AD%E8%AF%81%E5%A4%9A%E4%B9%85%E9%9C%80%E8%A6%81%E6%89%8B%E5%8A%A8%E6%9B%B4%E6%96%B0%EF%BC%9F"><span class="toc-number">9.1.</span> <span class="toc-text">Q: 凭证多久需要手动更新？</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Q-%E5%85%8D%E8%B4%B9%E9%A2%9D%E5%BA%A6%E5%A4%9F%E7%94%A8%E5%90%97%EF%BC%9F"><span class="toc-number">9.2.</span> <span class="toc-text">Q: 免费额度够用吗？</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Q-%E6%94%AF%E6%8C%81%E5%93%AA%E4%BA%9B%E9%9F%B3%E8%B4%A8%EF%BC%9F"><span class="toc-number">9.3.</span> <span class="toc-text">Q: 支持哪些音质？</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%80%BB%E7%BB%93"><span class="toc-number">10.</span> <span class="toc-text">总结</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E2%9A%A0%EF%B8%8F-%E5%85%8D%E8%B4%A3%E5%A3%B0%E6%98%8E"><span class="toc-number">11.</span> <span class="toc-text">⚠️ 免责声明</span></a></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/QQ-Music-api/" title="QQ-Music-api">QQ-Music-api</a><time datetime="2026-01-14T12:00:39.000Z" title="发表于 2026-01-14 20:00:39">2026-01-14</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/WiFi-hacking/" title="WiFi 密码破解">WiFi 密码破解</a><time datetime="2025-12-13T15:34:20.000Z" title="发表于 2025-12-13 23:34:20">2025-12-13</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/Nekro-Endpoint/" title="Nekro Endpoint 边缘端点">Nekro Endpoint 边缘端点</a><time datetime="2025-11-19T17:26:19.000Z" title="发表于 2025-11-20 01:26:19">2025-11-20</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/iStoreOS-install/" title="iStoreOS 软路由部署">iStoreOS 软路由部署</a><time datetime="2025-11-14T08:25:30.000Z" title="发表于 2025-11-14 16:25:30">2025-11-14</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/Nekro-Agent-install/" title="Nekro Agent 部署">Nekro Agent 部署</a><time datetime="2025-11-14T07:42:34.000Z" title="发表于 2025-11-14 15:42:34">2025-11-14</time></div></div></div></div></div></div></main><footer id="footer" style="background-image: url(/img/background.jpg);"><div class="footer-other"><div class="footer-copyright"><span class="copyright">&copy;&nbsp;2025 - 2026 By 搁浅</span></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="translateLink" type="button" title="简繁转换">繁</button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js"></script><script src="/js/main.js"></script><script src="/js/tw_cn.js"></script><script src="https://cdn.jsdelivr.net/npm/node-snackbar/dist/snackbar.min.js"></script><div class="js-pjax"><script>(() => {
+  const loadMathjax = () => {
+    if (!window.MathJax) {
+      window.MathJax = {
+        loader: {
+          load: [
+            // Four font extension packages (optional)
+            //- '[tex]/bbm',
+            //- '[tex]/bboldx',
+            //- '[tex]/dsfont',
+            '[tex]/mhchem'
+          ],
+          paths: {
+            'mathjax-newcm': '[mathjax]/../@mathjax/mathjax-newcm-font',
+
+            //- // Four font extension packages (optional)
+            //- 'mathjax-bbm-extension': '[mathjax]/../@mathjax/mathjax-bbm-font-extension',
+            //- 'mathjax-bboldx-extension': '[mathjax]/../@mathjax/mathjax-bboldx-font-extension',
+            //- 'mathjax-dsfont-extension': '[mathjax]/../@mathjax/mathjax-dsfont-font-extension',
+            'mathjax-mhchem-extension': '[mathjax]/../@mathjax/mathjax-mhchem-font-extension'
+          }
+        },
+        output: {
+          font: 'mathjax-newcm',
+        },
+        tex: {
+          inlineMath: [['$', '$'], ['\\(', '\\)']],
+          tags: 'none',
+          packages: {
+            '[+]': [
+              'mhchem'
+            ]
+          }
+        },
+        chtml: {
+          scale: 1.1
+        },
+        options: {
+          enableMenu: true,
+          menuOptions: {
+            settings: {
+              enrich: false  // Turn off Braille and voice narration text automatic generation
+            }
+          },
+          renderActions: {
+            findScript: [10, doc => {
+              for (const node of document.querySelectorAll('script[type^="math/tex"]')) {
+                const display = !!node.type.match(/; *mode=display/)
+                const math = new doc.options.MathItem(node.textContent, doc.inputJax[0], display)
+                const text = document.createTextNode('')
+                node.parentNode.replaceChild(text, node)
+                math.start = {node: text, delim: '', n: 0}
+                math.end = {node: text, delim: '', n: 0}
+                doc.math.push(math)
+              }
+            }, '']
+          }
+        }
+      }
+
+      const script = document.createElement('script')
+      script.src = 'https://cdn.jsdelivr.net/npm/mathjax/tex-mml-chtml.min.js'
+      script.id = 'MathJax-script'
+      script.async = true
+      document.head.appendChild(script)
+    } else {
+      MathJax.startup.document.state(0)
+      MathJax.texReset()
+      MathJax.typesetPromise()
+    }
+  }
+
+  btf.addGlobalFn('encrypt', loadMathjax, 'mathjax')
+  window.pjax ? loadMathjax() : window.addEventListener('load', loadMathjax)
+})()</script></div><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/dist/activate-power-mode.min.js"></script><script>POWERMODE.colorful = true;
+POWERMODE.shake = false;
+POWERMODE.mobile = false;
+document.body.addEventListener('input', POWERMODE);
+</script><script id="click-heart" src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/dist/click-heart.min.js" async="async" mobile="false"></script><script id="click-show-text" src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/dist/click-show-text.min.js" data-mobile="false" data-text="❤,Y,G,K,I,N,G" data-fontsize="15px" data-random="true" async="async"></script></div></body></html>
